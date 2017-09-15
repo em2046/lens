@@ -2,7 +2,6 @@
  * em2046
  * 2017-09-15
  */
-
 const assert = require('assert')
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
@@ -10,6 +9,7 @@ const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 class PNGReader {
   constructor (data) {
     this._index = 0
+    this.chunks = {}
     this.setBuffer(data)
   }
 
@@ -18,7 +18,7 @@ class PNGReader {
     this.validateSignature()
 
     for (let i = 0; i < 10; i++) {
-      let chunk = this.readChunk()
+      let chunk = this.readNextChunk()
       if (!chunk) {
         break
       }
@@ -26,27 +26,39 @@ class PNGReader {
     }
   }
 
-  readChunk () {
+  readNextChunk () {
     if (this._index >= this._buffer.length) {
       return false
     }
-    let size = this.readInt32(4)
-    let type = this.readString(4)
-    let data = this.readBuffer(size)
+    let length = this.readInt32(4)
+    let chunkType = this.readString(4)
+    let chunkData = this.readBuffer(length)
     let crc = this.readInt32(4)
+    let sourceData = this.decodeChunk(chunkType, chunkData)
+    this.chunks[chunkType] = sourceData
+
+    if (chunkType === 'IHDR') {
+      this._png = sourceData
+    }
+
     return {
-      size: size,
-      type: type,
-      data: data,
+      length: length,
+      chunkType: chunkType,
+      sourceData: sourceData,
       crc: crc
     }
+  }
+
+  decodeChunk (type, data) {
+    const decoder = require('./chunk/' + type)
+    return decoder(data)
   }
 
   readBuffer (size) {
     let start = this._index
     let end = start + size
     this.validateBorder(end)
-    let buffer = this._buffer.subarray(start, end)
+    let buffer = this._buffer.slice(start, end)
     this._index = end
     return buffer
   }
