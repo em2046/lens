@@ -1,0 +1,20 @@
+{
+  "name": "lens",
+  "version": "1.0.0",
+  "description": "A PNG decode application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/em2046/lens",
+  "keywords": [
+    "lens",
+    "PNG",
+    "decode"
+  ],
+  "author": "em2046",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "~1.6.2"
+  }
+}
