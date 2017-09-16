@@ -3,6 +3,7 @@
  * 2017-09-15
  */
 const assert = require('assert')
+const CRC = require('./crc')
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 
@@ -31,21 +32,27 @@ class PNGReader {
       return false
     }
     let length = this.readInt32(4)
-    let chunkType = this.readString(4)
+    let chunkType = this.readBuffer(4)
     let chunkData = this.readBuffer(length)
-    let crc = this.readInt32(4)
-    let sourceData = this.decodeChunk(chunkType, chunkData)
+    let CRCValue = this.readInt32(4)
+
+    let chunkTypeString = chunkType.toString('ascii')
+    let sourceData = this.decodeChunk(chunkTypeString, chunkData)
     this.chunks[chunkType] = sourceData
 
     if (chunkType === 'IHDR') {
       this._png = sourceData
     }
 
+    let typeAndData = Buffer.concat([chunkType, chunkData])
+    let calculatedCRC = CRC.validateCRC(typeAndData, typeAndData.length)
+    assert.ok(CRC.equal(calculatedCRC, CRCValue), 'CRC error!')
+
     return {
       length: length,
-      chunkType: chunkType,
+      chunkTypeString: chunkTypeString,
       sourceData: sourceData,
-      crc: crc
+      CRCValue: CRCValue
     }
   }
 
