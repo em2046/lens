@@ -3,6 +3,10 @@
  * 2017-09-15
  */
 const assert = require('assert')
+const path = require('path')
+const fs = require('fs')
+const zlib = require('zlib')
+const unfilters = require('./unfilters')
 const CRC = require('./crc')
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
@@ -10,7 +14,10 @@ const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 class PNGReader {
   constructor (data) {
     this._index = 0
-    this.chunks = {}
+    this._png = null
+    this._colorData = null
+    this._chunks = []
+    this._dataChunkList = []
     this.setBuffer(data)
   }
 
@@ -23,8 +30,10 @@ class PNGReader {
       if (!chunk) {
         break
       }
-      console.log(chunk)
+      this._chunks.push(chunk)
     }
+
+    this._colorData = this.decodeDataChunk()
   }
 
   readNextChunk () {
@@ -38,12 +47,9 @@ class PNGReader {
 
     let chunkTypeString = chunkType.toString('ascii')
     let sourceData = this.decodeChunk(chunkTypeString, chunkData)
-    this.chunks[chunkType] = sourceData
-
-    if (chunkType === 'IHDR') {
+    if (chunkTypeString === 'IHDR') {
       this._png = sourceData
     }
-
     let typeAndData = Buffer.concat([chunkType, chunkData])
     let calculatedCRC = CRC.validateCRC(typeAndData, typeAndData.length)
     assert.ok(CRC.equal(calculatedCRC, CRCValue), 'CRC error!')
@@ -57,8 +63,69 @@ class PNGReader {
   }
 
   decodeChunk (type, data) {
-    const decoder = require('./chunk/' + type)
-    return decoder(data)
+    let moduleName = path.resolve(__dirname, './chunk/' + type + '.js')
+    let moduleStat = fs.statSync(moduleName)
+    if (moduleStat.isFile()) {
+      const decoder = require(moduleName)
+      return decoder(data, this)
+    } else {
+      console.log('Unknown module!')
+      return data
+    }
+  }
+
+  decodeDataChunk () {
+    let dataChunk = this.concatDataChunk()
+    let inflateDataChunk = this.inflateDataChunk(dataChunk)
+    let png = this._png
+    let width = png.width
+    let height = png.height
+    let lineSize = width * 3
+
+    let lineFilterSize = 1
+    let lineList = []
+
+    for (let index = 0; index < inflateDataChunk.length;) {
+      lineList.push({
+        filter: inflateDataChunk[index],
+        data: inflateDataChunk.slice(index + 1, index + 1 + lineSize)
+      })
+      index += lineFilterSize + lineSize
+    }
+
+    for (let heightIndex = 0; heightIndex < height; heightIndex++) {
+      let line = lineList[heightIndex]
+      line.unfilterdData = unfilters[line.filter](line.data)
+    }
+
+    let colorData = Buffer.alloc(width * height * 4)
+    for (let i = 0; i < height; i++) {
+      for (let j = 0; j < width; j++) {
+        let offset = (i * height + j) * 4
+        let r = lineList[i].unfilterdData[j * 3]
+        let g = lineList[i].unfilterdData[j * 3 + 1]
+        let b = lineList[i].unfilterdData[j * 3 + 2]
+        let a = 255
+        colorData.writeUInt8(r, offset)
+        colorData.writeUInt8(g, offset + 1)
+        colorData.writeUInt8(b, offset + 2)
+        colorData.writeUInt8(a, offset + 3)
+      }
+    }
+
+    return colorData
+  }
+
+  addDataChunk (data) {
+    this._dataChunkList.push(data)
+  }
+
+  concatDataChunk () {
+    return Buffer.concat(this._dataChunkList)
+  }
+
+  inflateDataChunk (dataChunk) {
+    return zlib.inflateSync(dataChunk)
   }
 
   readBuffer (size) {
