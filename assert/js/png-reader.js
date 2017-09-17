@@ -82,10 +82,10 @@ class PNGReader {
     let height = png.height
     let bpp = png.colors
     let lineSize = width * bpp
-
     let lineFilterSize = 1
     let lineList = []
 
+    // Scan line
     for (let index = 0; index < inflateDataChunk.length;) {
       lineList.push({
         filter: inflateDataChunk[index],
@@ -94,11 +94,20 @@ class PNGReader {
       index += lineFilterSize + lineSize
     }
 
+    // UnFilter
     for (let heightIndex = 0; heightIndex < height; heightIndex++) {
       let line = lineList[heightIndex]
-      line.unfilterdData = unfilters[line.filter](line.data)
+      let filter = line.filter
+      line.unfilterdData = unfilters[filter]({
+        bpp: bpp,
+        lineList: lineList,
+        heightIndex: heightIndex,
+        data: line.data,
+        png: png
+      })
     }
 
+    // To RGBA
     let colorData = Buffer.alloc(width * height * 4)
     for (let i = 0; i < height; i++) {
       for (let j = 0; j < width; j++) {
