@@ -1,0 +1,9 @@
+/**
+ * em2046
+ * 2017-09-17
+ */
+@media (-webkit-max-device-pixel-ratio: 2) {
+  #canvas {
+    zoom: 0.5;
+  }
+}

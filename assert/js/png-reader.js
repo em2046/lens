@@ -80,7 +80,8 @@ class PNGReader {
     let png = this._png
     let width = png.width
     let height = png.height
-    let lineSize = width * 3
+    let bpp = png.colors
+    let lineSize = width * bpp
 
     let lineFilterSize = 1
     let lineList = []
@@ -101,18 +102,22 @@ class PNGReader {
     let colorData = Buffer.alloc(width * height * 4)
     for (let i = 0; i < height; i++) {
       for (let j = 0; j < width; j++) {
-        let offset = (i * height + j) * 4
-        let r = lineList[i].unfilterdData[j * 3]
-        let g = lineList[i].unfilterdData[j * 3 + 1]
-        let b = lineList[i].unfilterdData[j * 3 + 2]
-        let a = 255
+        let offset = (i * width + j) * 4
+        let r = lineList[i].unfilterdData[j * bpp]
+        let g = lineList[i].unfilterdData[j * bpp + 1]
+        let b = lineList[i].unfilterdData[j * bpp + 2]
+        let a
+        if (png.alpha) {
+          a = lineList[i].unfilterdData[j * bpp + 3]
+        } else {
+          a = 0xff
+        }
         colorData.writeUInt8(r, offset)
         colorData.writeUInt8(g, offset + 1)
         colorData.writeUInt8(b, offset + 2)
         colorData.writeUInt8(a, offset + 3)
       }
     }
-
     return colorData
   }
 
