@@ -8,6 +8,7 @@ const fs = require('fs')
 const zlib = require('zlib')
 const unfilters = require('./unfilters')
 const CRC = require('./crc')
+const interlace = require('./interlace')
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 
@@ -77,6 +78,16 @@ class PNGReader {
   decodeDataChunk () {
     let dataChunk = this.concatDataChunk()
     let inflateDataChunk = this.inflateDataChunk(dataChunk)
+
+    let png = this._png
+    if (png.interlaceMethod === 0) {
+      return this.interlace0(inflateDataChunk)
+    } else if (png.interlaceMethod === 1) {
+      return this.interlace1(inflateDataChunk)
+    }
+  }
+
+  interlace0 (inflateDataChunk) {
     let png = this._png
     let width = png.width
     let height = png.height
@@ -128,6 +139,13 @@ class PNGReader {
       }
     }
     return colorData
+  }
+
+  interlace1 (inflateDataChunk) {
+    let png = this._png
+    let width = png.width
+    let height = png.height
+    return interlace.pass(inflateDataChunk, width, height)
   }
 
   addDataChunk (data) {
