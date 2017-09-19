@@ -36,7 +36,7 @@ unfilters[1] = function (options) {
 
 unfilters[2] = function (options) {
   let bpp = options.bpp
-  let lineList = options.lineList
+  let prevData = options.prevData
   let heightIndex = options.heightIndex
   let data = options.data
   let png = options.png
@@ -53,7 +53,7 @@ unfilters[2] = function (options) {
       if (heightIndex === 0) {
         b = 0
       } else {
-        b = lineList[heightIndex - 1].unfilterdData[offset + j]
+        b = prevData[offset + j]
       }
       newData[offset + j] = (x + b) & 0xFF
     }
@@ -63,7 +63,7 @@ unfilters[2] = function (options) {
 
 unfilters[3] = function (options) {
   let bpp = options.bpp
-  let lineList = options.lineList
+  let prevData = options.prevData
   let heightIndex = options.heightIndex
   let data = options.data
   let png = options.png
@@ -90,7 +90,7 @@ unfilters[3] = function (options) {
       if (heightIndex === 0) {
         b = 0
       } else {
-        b = lineList[heightIndex - 1].unfilterdData[offset + j]
+        b = prevData[offset + j]
       }
 
       newData[offset + j] = (x + ~~((a + b) / 2)) & 0xFF
@@ -102,7 +102,7 @@ unfilters[3] = function (options) {
 
 unfilters[4] = function (options) {
   let bpp = options.bpp
-  let lineList = options.lineList
+  let prevData = options.prevData
   let heightIndex = options.heightIndex
   let data = options.data
   let png = options.png
@@ -130,14 +130,14 @@ unfilters[4] = function (options) {
       if (heightIndex === 0) {
         b = 0
       } else {
-        b = lineList[heightIndex - 1].unfilterdData[offset + j]
+        b = prevData[offset + j]
       }
 
       // Left and Up
       if (index === 0 || heightIndex === 0) {
         c = 0
       } else {
-        c = lineList[heightIndex - 1].unfilterdData[prevOffset + j]
+        c = prevData[prevOffset + j]
       }
 
       let pr = paethPredictor(a, b, c)

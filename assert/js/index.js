@@ -10,7 +10,7 @@ let pageSingle = {
   init () {
     let canvas = document.querySelector('#canvas')
     this.canvas = canvas
-    this.canvasZoom = 100
+    this.canvasZoom = 1
     this.ctx = canvas.getContext('2d')
     console.time('rendered')
     this.readPNG(function () {
@@ -19,7 +19,7 @@ let pageSingle = {
   },
   readPNG: function (finishCallback) {
     let canvasZoom = this.canvasZoom
-    fs.readFile('./assert/png/7x7-adam7.png', (err, data) => {
+    fs.readFile('./assert/png/signals-adam7.png', (err, data) => {
       if (err) throw err
       let pngReader = new PNGReader(data)
       let width = pngReader._png.width

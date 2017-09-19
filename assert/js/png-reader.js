@@ -105,17 +105,21 @@ class PNGReader {
       index += lineFilterSize + lineSize
     }
 
+    let line = null
+    let prevLine = null
     // UnFilter
     for (let heightIndex = 0; heightIndex < height; heightIndex++) {
-      let line = lineList[heightIndex]
+      line = lineList[heightIndex]
       let filter = line.filter
       line.unfilterdData = unfilters[filter]({
         bpp: bpp,
         lineList: lineList,
         heightIndex: heightIndex,
         data: line.data,
+        prevData: prevLine ? prevLine.unfilterdData : null,
         png: png
       })
+      prevLine = line
     }
 
     // To RGBA
@@ -145,7 +149,7 @@ class PNGReader {
     let png = this._png
     let width = png.width
     let height = png.height
-    return interlace.pass(inflateDataChunk, width, height)
+    return interlace.adam7(inflateDataChunk, width, height, png)
   }
 
   addDataChunk (data) {

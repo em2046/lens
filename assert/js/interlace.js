@@ -2,6 +2,8 @@
  * em2046
  * 2017-09-18
  */
+const unfilters = require('./unfilters')
+
 class interlace {
   static min (a, b) {
     if (a < b) {
@@ -11,34 +13,75 @@ class interlace {
     }
   }
 
-  static pass (data, width, height) {
+  static adam7 (data, width, height, png) {
+    let bpp = png.colors
     let startingRow = [0, 0, 4, 0, 2, 0, 1]
     let startingCol = [0, 4, 0, 2, 0, 1, 0]
     let rowIncrement = [8, 8, 8, 4, 4, 2, 2]
     let colIncrement = [8, 8, 4, 4, 2, 2, 1]
     let pass
     let row, col
-
     let colorData = Buffer.alloc(width * height * 4)
-
     let inputOffset = 0
+    let prevInputOffset = 0
+    let heightIndex = 0
+    let scanLine = null
+    let prevScanLine = null
+    let filterType = null
+    let scanLineData
+    let scanLineDataList = []
 
+    pass = 0
+    while (pass < 7) {
+      heightIndex = 0
+      prevScanLine = null
+      row = startingRow[pass]
+      while (row < height) {
+        col = startingCol[pass]
+        filterType = data.readUInt8(inputOffset)
+        inputOffset += 1
+        prevInputOffset = inputOffset
+        while (col < width) {
+          inputOffset += bpp
+          col = col + colIncrement[pass]
+        }
+        scanLine = data.slice(prevInputOffset, inputOffset)
+        scanLineData = unfilters[filterType]({
+          bpp: bpp,
+          heightIndex: heightIndex,
+          data: scanLine,
+          prevData: prevScanLine,
+          png: png
+        })
+        heightIndex++
+        prevScanLine = scanLineData
+        scanLineDataList.push(scanLineData)
+        row = row + rowIncrement[pass]
+      }
+      pass = pass + 1
+    }
+
+    // reInit
+    inputOffset = 0
+    heightIndex = 0
+    scanLine = null
+    prevScanLine = null
+    filterType = null
+    let scanLineBuffer = Buffer.concat(scanLineDataList)
     pass = 0
     while (pass < 7) {
       row = startingRow[pass]
       while (row < height) {
         col = startingCol[pass]
-
-        // TODO unFilter
-        console.log(data[inputOffset])
-        inputOffset += 1
-
+        heightIndex++
         while (col < width) {
-          colorData[row * width * 4 + col * 4] = data[inputOffset]
-          colorData[row * width * 4 + col * 4 + 1] = data[inputOffset + 1]
-          colorData[row * width * 4 + col * 4 + 2] = data[inputOffset + 2]
-          colorData[row * width * 4 + col * 4 + 3] = data[inputOffset + 3]
-          inputOffset += 4
+          for (let i = 0; i < bpp; i++) {
+            colorData[row * width * 4 + col * 4 + i] = scanLineBuffer[inputOffset + i]
+          }
+          if (bpp < 4) {
+            colorData[row * width * 4 + col * 4 + 3] = 255
+          }
+          inputOffset += bpp
           col = col + colIncrement[pass]
         }
         row = row + rowIncrement[pass]
@@ -46,35 +89,6 @@ class interlace {
       pass = pass + 1
     }
     return colorData
-  }
-
-  static adam7 (width, height, visit) {
-    let startingRow = [0, 0, 4, 0, 2, 0, 1]
-    let startingCol = [0, 4, 0, 2, 0, 1, 0]
-    let rowIncrement = [8, 8, 8, 4, 4, 2, 2]
-    let colIncrement = [8, 8, 4, 4, 2, 2, 1]
-    let blockHeight = [8, 8, 4, 4, 2, 2, 1]
-    let blockWidth = [8, 4, 4, 2, 2, 1, 1]
-
-    let pass
-    let row, col
-
-    pass = 0
-    while (pass < 7) {
-      row = startingRow[pass]
-      while (row < height) {
-        col = startingCol[pass]
-
-        while (col < width) {
-          visit(row, col,
-            interlace.min(blockHeight[pass], height - row),
-            interlace.min(blockWidth[pass], width - col))
-          col = col + colIncrement[pass]
-        }
-        row = row + rowIncrement[pass]
-      }
-      pass = pass + 1
-    }
   }
 }
 
