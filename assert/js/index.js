@@ -12,14 +12,27 @@ let pageSingle = {
     this.canvas = canvas
     this.canvasZoom = 1
     this.ctx = canvas.getContext('2d')
-    console.time('rendered')
-    this.readPNG(function () {
-      console.timeEnd('rendered')
-    })
+    this.bindEvent()
   },
-  readPNG: function (finishCallback) {
+  bindEvent: function () {
+    let self = this
+    document.addEventListener('dragover', function (event) {
+      event.preventDefault()
+    }, false)
+    document.addEventListener('drop', function (event) {
+      event.preventDefault()
+      let files = event.dataTransfer.files
+      let file = files[0]
+      if (file.type === 'image/png') {
+        let filePath = file.path
+        console.log(filePath)
+        self.readPNG(filePath, function () {})
+      }
+    }, false)
+  },
+  readPNG: function (fileName, finishCallback) {
     let canvasZoom = this.canvasZoom
-    fs.readFile('./assert/png/signals-adam7.png', (err, data) => {
+    fs.readFile(fileName, (err, data) => {
       if (err) throw err
       let pngReader = new PNGReader(data)
       let width = pngReader._png.width

@@ -2,7 +2,11 @@
  * em2046
  * 2017-09-17
  */
-@media (-webkit-max-device-pixel-ratio: 2) {
+#canvas {
+  background-image: url(../img/background.png);
+}
+
+@media (-webkit-min-device-pixel-ratio: 2) {
   #canvas {
     zoom: 0.5;
   }
