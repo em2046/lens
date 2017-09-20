@@ -32,16 +32,18 @@ let pageSingle = {
   },
   readPNG: function (fileName, finishCallback) {
     let canvasZoom = this.canvasZoom
+    let self = this
     fs.readFile(fileName, (err, data) => {
       if (err) throw err
-      let pngReader = new PNGReader(data)
-      let width = pngReader._png.width
-      let height = pngReader._png.height
-      this.canvas.setAttribute('width', width * canvasZoom)
-      this.canvas.setAttribute('height', height * canvasZoom)
-      this.pngReader = pngReader
-      console.log(pngReader)
-      this.renderPNG(finishCallback)
+      self.pngReader = new PNGReader(data, function () {
+        let width = this._png.width
+        let height = this._png.height
+        self.canvas.setAttribute('width', width * canvasZoom)
+        self.canvas.setAttribute('height', height * canvasZoom)
+        self.pngReader = this
+        console.log(this)
+        self.renderPNG(finishCallback)
+      })
     })
   },
   renderPNG: function (finishCallback) {

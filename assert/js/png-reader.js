@@ -13,16 +13,16 @@ const interlace = require('./interlace')
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
 
 class PNGReader {
-  constructor (data) {
+  constructor (data, cb) {
     this._index = 0
     this._png = null
     this._colorData = null
     this._chunks = []
     this._dataChunkList = []
-    this.setBuffer(data)
+    this.setBuffer(data, cb)
   }
 
-  setBuffer (buffer) {
+  setBuffer (buffer, cb) {
     this._buffer = buffer
     this.validateSignature()
 
@@ -34,7 +34,7 @@ class PNGReader {
       this._chunks.push(chunk)
     }
 
-    this._colorData = this.decodeDataChunk()
+    this.decodeDataChunk(cb)
   }
 
   readNextChunk () {
@@ -75,16 +75,19 @@ class PNGReader {
     }
   }
 
-  decodeDataChunk () {
+  decodeDataChunk (cb) {
     let dataChunk = this.concatDataChunk()
-    let inflateDataChunk = this.inflateDataChunk(dataChunk)
-
     let png = this._png
-    if (png.interlaceMethod === 0) {
-      return this.interlace0(inflateDataChunk)
-    } else if (png.interlaceMethod === 1) {
-      return this.interlace1(inflateDataChunk)
-    }
+    let self = this
+    this.inflateDataChunk(dataChunk, function (inflateDataChunk) {
+      if (png.interlaceMethod === 0) {
+        self._colorData = self.interlace0(inflateDataChunk)
+        cb.call(self)
+      } else if (png.interlaceMethod === 1) {
+        self._colorData = self.interlace0(inflateDataChunk)
+        cb.call(self)
+      }
+    })
   }
 
   interlace0 (inflateDataChunk) {
@@ -160,8 +163,14 @@ class PNGReader {
     return Buffer.concat(this._dataChunkList)
   }
 
-  inflateDataChunk (dataChunk) {
-    return zlib.inflateSync(dataChunk)
+  inflateDataChunk (dataChunk, cb) {
+    console.log(dataChunk)
+    return zlib.inflate(dataChunk, function (err, data) {
+      if (err) {
+        throw new Error(err)
+      }
+      cb(data)
+    })
   }
 
   readBuffer (size) {
