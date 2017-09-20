@@ -26,7 +26,7 @@ class PNGReader {
     this._buffer = buffer
     this.validateSignature()
 
-    for (let i = 0; i < 10; i++) {
+    while (true) {
       let chunk = this.readNextChunk()
       if (!chunk) {
         break
@@ -84,7 +84,7 @@ class PNGReader {
         self._colorData = self.interlace0(inflateDataChunk)
         cb.call(self)
       } else if (png.interlaceMethod === 1) {
-        self._colorData = self.interlace0(inflateDataChunk)
+        self._colorData = self.interlace1(inflateDataChunk)
         cb.call(self)
       }
     })
@@ -164,7 +164,6 @@ class PNGReader {
   }
 
   inflateDataChunk (dataChunk, cb) {
-    console.log(dataChunk)
     return zlib.inflate(dataChunk, function (err, data) {
       if (err) {
         throw new Error(err)

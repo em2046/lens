@@ -25,8 +25,10 @@ let pageSingle = {
       let file = files[0]
       if (file.type === 'image/png') {
         let filePath = file.path
-        console.log(filePath)
-        self.readPNG(filePath, function () {})
+        console.time('read')
+        self.readPNG(filePath, function () {
+          console.timeEnd('read')
+        })
       }
     }, false)
   },
