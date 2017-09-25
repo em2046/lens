@@ -2,13 +2,13 @@
  * em2046
  * 2017-09-17
  */
-let unfilters = {}
+let reverseFilter = {}
 
-unfilters[0] = function (options) {
+reverseFilter[0] = function (options) {
   return options.data
 }
 
-unfilters[1] = function (options) {
+reverseFilter[1] = function (options) {
   let png = options.png
   let bpp = options.bpp
   let data = options.data
@@ -34,7 +34,7 @@ unfilters[1] = function (options) {
   return newData
 }
 
-unfilters[2] = function (options) {
+reverseFilter[2] = function (options) {
   let bpp = options.bpp
   let prevData = options.prevData
   let heightIndex = options.heightIndex
@@ -61,7 +61,7 @@ unfilters[2] = function (options) {
   return newData
 }
 
-unfilters[3] = function (options) {
+reverseFilter[3] = function (options) {
   let bpp = options.bpp
   let prevData = options.prevData
   let heightIndex = options.heightIndex
@@ -100,7 +100,7 @@ unfilters[3] = function (options) {
   return newData
 }
 
-unfilters[4] = function (options) {
+reverseFilter[4] = function (options) {
   let bpp = options.bpp
   let prevData = options.prevData
   let heightIndex = options.heightIndex
@@ -164,4 +164,4 @@ unfilters[4] = function (options) {
   return newData
 }
 
-module.exports = unfilters
+module.exports = reverseFilter

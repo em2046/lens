@@ -6,7 +6,7 @@ const assert = require('assert')
 const path = require('path')
 const fs = require('fs')
 const zlib = require('zlib')
-const unfilters = require('./unfilters')
+const reverseFilter = require('./reverse-filter')
 const CRC = require('./crc')
 const interlace = require('./interlace')
 
@@ -26,6 +26,7 @@ class PNGReader {
     this._buffer = buffer
     this.validateSignature()
 
+    console.time('readNextChunk')
     while (true) {
       let chunk = this.readNextChunk()
       if (!chunk) {
@@ -33,6 +34,7 @@ class PNGReader {
       }
       this._chunks.push(chunk)
     }
+    console.timeEnd('readNextChunk')
 
     this.decodeDataChunk(cb)
   }
@@ -111,40 +113,47 @@ class PNGReader {
     let line = null
     let prevLine = null
     // UnFilter
+    console.time('UnFilter')
     for (let heightIndex = 0; heightIndex < height; heightIndex++) {
       line = lineList[heightIndex]
       let filter = line.filter
-      line.unfilterdData = unfilters[filter]({
+      line.reverseFilterData = reverseFilter[filter]({
         bpp: bpp,
         lineList: lineList,
         heightIndex: heightIndex,
         data: line.data,
-        prevData: prevLine ? prevLine.unfilterdData : null,
+        prevData: prevLine ? prevLine.reverseFilterData : null,
         png: png
       })
       prevLine = line
     }
+    console.timeEnd('UnFilter')
 
     // To RGBA
-    let colorData = Buffer.alloc(width * height * 4)
+    console.time('To RGBA')
+    // let colorData = Buffer.alloc(width * height * 4)
+    let colorData = new Uint8Array(width * height * 4)
+
     for (let i = 0; i < height; i++) {
       for (let j = 0; j < width; j++) {
         let offset = (i * width + j) * 4
-        let r = lineList[i].unfilterdData[j * bpp]
-        let g = lineList[i].unfilterdData[j * bpp + 1]
-        let b = lineList[i].unfilterdData[j * bpp + 2]
+        let reverseFilterData = lineList[i].reverseFilterData
+        let r = reverseFilterData[j * bpp]
+        let g = reverseFilterData[j * bpp + 1]
+        let b = reverseFilterData[j * bpp + 2]
         let a
         if (png.alpha) {
-          a = lineList[i].unfilterdData[j * bpp + 3]
+          a = reverseFilterData[j * bpp + 3]
         } else {
           a = 0xff
         }
-        colorData.writeUInt8(r, offset)
-        colorData.writeUInt8(g, offset + 1)
-        colorData.writeUInt8(b, offset + 2)
-        colorData.writeUInt8(a, offset + 3)
+        colorData[offset] = r
+        colorData[offset + 1] = g
+        colorData[offset + 2] = b
+        colorData[offset + 3] = a
       }
     }
+    console.timeEnd('To RGBA')
     return colorData
   }
 

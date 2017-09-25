@@ -2,7 +2,7 @@
  * em2046
  * 2017-09-18
  */
-const unfilters = require('./unfilters')
+const reverseFilter = require('./reverse-filter')
 
 class interlace {
   static min (a, b) {
@@ -21,7 +21,8 @@ class interlace {
     let colIncrement = [8, 8, 4, 4, 2, 2, 1]
     let pass
     let row, col
-    let colorData = Buffer.alloc(width * height * 4)
+    // let colorData = Buffer.alloc(width * height * 4)
+    let colorData = new Uint8Array(width * height * 4)
     let inputOffset = 0
     let prevInputOffset = 0
     let heightIndex = 0
@@ -38,7 +39,7 @@ class interlace {
       row = startingRow[pass]
       while (row < height) {
         col = startingCol[pass]
-        filterType = data.readUInt8(inputOffset)
+        filterType = data[inputOffset]
         inputOffset += 1
         prevInputOffset = inputOffset
         while (col < width) {
@@ -46,7 +47,7 @@ class interlace {
           col = col + colIncrement[pass]
         }
         scanLine = data.slice(prevInputOffset, inputOffset)
-        scanLineData = unfilters[filterType]({
+        scanLineData = reverseFilter[filterType]({
           bpp: bpp,
           heightIndex: heightIndex,
           data: scanLine,

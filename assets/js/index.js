@@ -35,8 +35,10 @@ let pageSingle = {
   readPNG: function (fileName, finishCallback) {
     let canvasZoom = this.canvasZoom
     let self = this
+    console.time('readFile')
     fs.readFile(fileName, (err, data) => {
       if (err) throw err
+      console.timeEnd('readFile')
       self.pngReader = new PNGReader(data, function () {
         let width = this._png.width
         let height = this._png.height
@@ -55,9 +57,11 @@ let pageSingle = {
     let uint8Arr = new Uint8ClampedArray(pngReader._colorData)
     let png = pngReader._png
     let imgData = new ImageData(uint8Arr, png.width, png.height)
+    console.time('renderIMG')
     createImageBitmap(imgData).then(function (img) {
       ctx.imageSmoothingEnabled = false
       ctx.drawImage(img, 0, 0, png.width * canvasZoom, png.height * canvasZoom)
+      console.timeEnd('renderIMG')
       finishCallback()
     })
   }
